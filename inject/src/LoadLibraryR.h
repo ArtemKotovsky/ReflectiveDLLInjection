@@ -29,8 +29,9 @@
 #include "ReflectiveDLLInjection.h"
 #include "InjectType.h"
 #include "LoaderType.h"
+#include "LoadLibrarySourceType.h"
 
 BOOL WINAPI LoadRemoteLibraryR(HANDLE hProcess, LPCSTR dllName, InjectType injectType, LPVOID lpParameter);
 
-bool LoadRemoteLibrary(HANDLE hProcess, LPCWSTR dllName, InjectType injectType);
-bool LoadRemoteLibrary(HANDLE hProcess, LPCSTR dllName, InjectType injectType);
+bool LoadRemoteLibrary(HANDLE hProcess, LPCWSTR dllName, InjectType injectType, LoadLibrarySourceType source);
+bool LoadRemoteLibrary(HANDLE hProcess, LPCSTR dllName, InjectType injectType, LoadLibrarySourceType source);

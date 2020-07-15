@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
     if (argc < 2)
     {
         printf(
-            "Usage: inject <pid|name> [dll_file] [CRT|CTEP|STC|QUA|NQAT|NQATE] [R|LW|LA]\n"
+            "Usage: inject <pid|name> [dll_file] [CRT|CTEP|STC|QUA|NQAT|NQATE] [R|LW|LA] [K32|KB]\n"
             "\t CRT   - CreateRemoteThread injection (default)\n"
             "\t CTEP  - Create new suspended thread and change entry point\n"
             "\t STC   - SetThreadContext injection\n"
@@ -106,6 +106,8 @@ int main(int argc, char* argv[])
             "\t R     - Reflective loader (default)\n"
             "\t LW    - LoadLibraryW loader\n"
             "\t LA    - LoadLibraryA loader\n"
+            "\t K32   - Use LoadLibrary* from kernel32.dll(default) \n"
+            "\t KB    - Use LoadLibrary* from kernelbase.dll \n"
             );
         return -1;
     }
@@ -172,9 +174,27 @@ int main(int argc, char* argv[])
         }
     }
 
-    printf("PID        : %d\n", processId);
-    printf("Inject type: %s\n", InjectTypeToString(injectType));
-    printf("Loader type: %s\n", LoaderTypeToString(loaderType));
+    LoadLibrarySourceType loadLibrarySource = kKernel32Dll;
+
+    if (argc >= 6)
+    {
+        if (0 == lstrcmpi(argv[5], "K32"))
+        {
+            loadLibrarySource = kKernel32Dll;
+        }
+        else if (0 == lstrcmpi(argv[5], "KB"))
+        {
+            loadLibrarySource = kKernelBaseDll;
+        }
+    }
+
+    printf("PID        :   %d\n", processId);
+    printf("Inject type:   %s\n", InjectTypeToString(injectType));
+    printf("Loader type:   %s\n", LoaderTypeToString(loaderType));
+    if (kLoadLibraryA == loaderType || kLoadLibraryW == loaderType)
+    {
+        printf("Using library: %s\n", LoadLibrarySourceToString(loadLibrarySource));
+    }
 
     HANDLE hToken = nullptr;
 	if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
@@ -220,14 +240,14 @@ int main(int argc, char* argv[])
         break;
 
     case kLoadLibraryW:
-        if (!LoadRemoteLibrary(hProcess, CA2W(dllFile), injectType))
+        if (!LoadRemoteLibrary(hProcess, CA2W(dllFile), injectType, loadLibrarySource))
         {
             GOTO_CLEANUP_WITH_ERROR("Failed to inject the DLL");
         }
         break;
 
     case kLoadLibraryA:
-        if (!LoadRemoteLibrary(hProcess, dllFile, injectType))
+        if (!LoadRemoteLibrary(hProcess, dllFile, injectType, loadLibrarySource))
         {
             GOTO_CLEANUP_WITH_ERROR("Failed to inject the DLL");
         }

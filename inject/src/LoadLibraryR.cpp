@@ -464,9 +464,32 @@ cleanup:
 }
 
 template<class CharT>
-bool LoadRemoteLibrary(HANDLE hProcess, const basic_string<CharT>& dllName, InjectType injectType)
+bool LoadRemoteLibrary(HANDLE hProcess, const basic_string<CharT>& dllName, InjectType  injectType, LoadLibrarySourceType source)
 {
-    auto loadLibrary = sizeof(CharT) == sizeof(char) ? reinterpret_cast<LPTHREAD_START_ROUTINE>(&LoadLibraryA) : reinterpret_cast<LPTHREAD_START_ROUTINE>(&LoadLibraryW);
+    LPTHREAD_START_ROUTINE loadLibrary = nullptr;
+
+    if (kKernel32Dll == source)
+    {
+        loadLibrary = sizeof(CharT) == sizeof(char) ? reinterpret_cast<LPTHREAD_START_ROUTINE>(&LoadLibraryA) : reinterpret_cast<LPTHREAD_START_ROUTINE>(&LoadLibraryW);
+    }
+    else if (kKernelBaseDll == source)
+    {
+        HMODULE moduleHandle = ::GetModuleHandleA("KERNELBASE.dll");
+        if (nullptr == moduleHandle)
+        {
+            GOTO_CLEANUP_WITH_ERROR("Failed to find KERNEL32.dll");
+        }
+        const char* functionName = sizeof(CharT) == sizeof(char) ? "LoadLibraryA" : "LoadLibraryW";
+        loadLibrary = reinterpret_cast<LPTHREAD_START_ROUTINE>(::GetProcAddress(moduleHandle, functionName));
+        if (nullptr == loadLibrary)
+        {
+            GOTO_CLEANUP_WITH_ERROR("Failed to find LoadLibrary* in kernel32.dll");
+        }
+    }
+    else
+    {
+        GOTO_CLEANUP_WITH_ERROR("Not supported");
+    }
 
     // alloc memory (RW) in the host process for the dll name...
     LPVOID remoteDllName = ::VirtualAllocEx(hProcess, nullptr, 0x1000, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -509,13 +532,13 @@ cleanup:
     return FALSE;
 }
 
-bool LoadRemoteLibrary(HANDLE hProcess, LPCWSTR dllName, InjectType injectType)
+bool LoadRemoteLibrary(HANDLE hProcess, LPCWSTR dllName, InjectType injectType, LoadLibrarySourceType source)
 {
-    return LoadRemoteLibrary(hProcess, wstring(dllName), injectType);
+    return LoadRemoteLibrary(hProcess, wstring(dllName), injectType, source);
 }
 
-bool LoadRemoteLibrary(HANDLE hProcess, LPCSTR dllName, InjectType injectType)
+bool LoadRemoteLibrary(HANDLE hProcess, LPCSTR dllName, InjectType injectType, LoadLibrarySourceType source)
 {
-    return LoadRemoteLibrary(hProcess, string(dllName), injectType);
+    return LoadRemoteLibrary(hProcess, string(dllName), injectType, source);
 }
 //===============================================================================================//
