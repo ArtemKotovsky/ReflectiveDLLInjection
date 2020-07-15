@@ -185,6 +185,7 @@
     <ClInclude Include="src\InjectType.h" />
     <ClInclude Include="src\LoaderType.h" />
     <ClInclude Include="src\LoadLibraryR.h" />
+    <ClInclude Include="src\LoadLibrarySourceType.h" />
     <ClInclude Include="src\ReflectiveDLLInjection.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
